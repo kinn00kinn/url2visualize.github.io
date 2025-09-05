@@ -6,9 +6,9 @@
     <title>QR Code Scanner</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
-    <div class="container">
-        <h1>Result QR Code Scanner</h1>
+<body class="home-body">
+    <div class="home-container">
+        <h1>CPR Result Visualizer</h1>
         <p>リザルト画面のQRコードをスキャンしてください。</p>
         <div id="scanner-container">
             <video id="scanner-video" playsinline></video>
@@ -16,10 +16,9 @@
         </div>
         <div id="url-input-container">
             <input type="text" id="url-input" placeholder="または、リザルトURLをここに貼り付け">
-            <button id="go-btn">移動</button>
+            <a href="#" id="go-btn" class="button">移動</a>
         </div>
-
-        <button id="start-scan-btn">カメラを起動してスキャンを開始</button>
+        <button id="start-scan-btn" class="button">カメラを起動してスキャンを開始</button>
         <p id="status-message"></p>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>

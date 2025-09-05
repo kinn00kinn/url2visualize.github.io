@@ -3,6 +3,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadBtn = document.getElementById("download-btn");
     const nextBtn = document.getElementById("next-btn");
 
+    const homeBtn = document.getElementById("home-btn");
+
+    // Attach event listeners immediately
+    downloadBtn.addEventListener("click", () => {
+        html2canvas(resultDisplay, { backgroundColor: '#f0f4f8' }).then(canvas => {
+            const image = canvas.toDataURL("image/png");
+            const link = document.createElement("a");
+            link.href = image;
+            link.download = "cpr-result.png";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    });
+
+    homeBtn.addEventListener("click", () => {
+        window.location.href = "/index.html";
+    });
+
     try {
         const urlParams = new URLSearchParams(window.location.search);
         const cprData = parseCprData(urlParams);
@@ -141,6 +160,5 @@ document.addEventListener("DOMContentLoaded", () => {
     function showError(message) {
         resultDisplay.innerHTML = `<p class="error-message">${message}</p>`;
         downloadBtn.style.display = 'none';
-        nextBtn.style.display = 'none';
     }
 });

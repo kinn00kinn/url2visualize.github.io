@@ -59,11 +59,12 @@ function tick() {
 }
 
 // URL入力から移動するボタンのイベントリスナー
-goBtn.addEventListener("click", () => {
+goBtn.addEventListener("click", (event) => {
+    event.preventDefault(); // <a>タグのデフォルトの動作をキャンセル
     const url = urlInput.value.trim();
-    if (url && (url.includes("result.html?data=") || url.startsWith("http"))) {
+    if (url && url.includes("result.html?")) {
         statusMessage.textContent = `指定されたURLに移動します...`;
-        window.location.href = url;
+        window.location.assign(url); // より明示的なメソッドに変更
     } else {
         statusMessage.textContent = "有効なURLを入力してください。";
     }
