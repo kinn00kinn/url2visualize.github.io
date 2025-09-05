@@ -1,86 +1,146 @@
 document.addEventListener("DOMContentLoaded", () => {
     const resultDisplay = document.getElementById("result-display");
     const downloadBtn = document.getElementById("download-btn");
+    const nextBtn = document.getElementById("next-btn");
 
-    // 1. URLからデータを取得して表示
     try {
         const urlParams = new URLSearchParams(window.location.search);
+        const cprData = parseCprData(urlParams);
 
-        // クエリパラメータから直接データを取得
-        const resultData = {
-            songTitle: urlParams.get('title'),
-            difficulty: urlParams.get('difficulty'),
-            score: parseInt(urlParams.get('score'), 10),
-            rank: urlParams.get('rank'),
-            details: {
-                Perfect: parseInt(urlParams.get('perfect'), 10),
-                Great: parseInt(urlParams.get('great'), 10),
-                Good: parseInt(urlParams.get('good'), 10),
-                Miss: parseInt(urlParams.get('miss'), 10),
-            }
-        };
-
-        if (resultData.songTitle && resultData.score) {
-            renderResult(resultData);
+        if (cprData.totalScore !== null) {
+            renderResult(cprData);
+            renderRadarChart(cprData.radar_scores);
         } else {
             showError("表示するデータがありません。URLを確認してください。");
         }
     } catch (e) {
         console.error("Data parsing error:", e);
-        showError("データの解析に失敗しました。URLが正しいか確認してください。");
+        showError("データの解析に失敗しました。");
     }
 
-    // 2. ダウンロードボタンのイベントリスナー
     downloadBtn.addEventListener("click", () => {
-        // html2canvasで #result-display をキャプチャ
-        html2canvas(resultDisplay, { 
-            backgroundColor: '#333', // 背景色を明示的に指定
-            useCORS: true // 外部画像がある場合に備える
-        }).then(canvas => {
-            // canvasを画像(PNG)に変換
+        html2canvas(resultDisplay, { backgroundColor: '#f0f4f8' }).then(canvas => {
             const image = canvas.toDataURL("image/png");
-
-            // ダウンロード用のリンクを作成してクリック
             const link = document.createElement("a");
             link.href = image;
-            link.download = "game-result.png";
+            link.download = "cpr-result.png";
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         });
     });
 
-    // 結果を描画する関数
+    nextBtn.addEventListener("click", () => {
+        alert("「次へ」がクリックされました。");
+    });
+
+    function parseCprData(params) {
+        const getInt = (p) => params.has(p) ? parseInt(params.get(p), 10) : null;
+        const getFloat = (p) => params.has(p) ? parseFloat(params.get(p)) : null;
+
+        return {
+            totalScore: getInt('totalScore'),
+            radar_scores: {
+                compression: getInt('rc_comp'),
+                release: getInt('rc_release'),
+                position: getInt('rc_pos'),
+                speed: getInt('rc_speed'),
+                interruption: getInt('rc_int'),
+            },
+            details: {
+                depth: getFloat('depth'),
+                bpm: getInt('bpm'),
+                releasePct: getInt('releasePct'),
+                positionPct: getInt('positionPct'),
+                interruptionCount: getInt('interruptionCount'),
+            }
+        };
+    }
+
     function renderResult(data) {
-        // シンプルなリザルト画面のHTMLを生成
         resultDisplay.innerHTML = `
-            <div class="result-header">
-                <h2>${data.songTitle || 'Unknown Song'}</h2>
-                <p class="difficulty ${data.difficulty?.toLowerCase()}">${data.difficulty || 'NORMAL'}</p>
-            </div>
-            <div class="result-body">
-                <div class="score-container">
-                    <p class="score-label">SCORE</p>
-                    <p class="score-value">${data.score?.toLocaleString() || 0}</p>
+            <div class="cpr-layout">
+                <div class="main-panel">
+                    <div class="score-display">
+                        <span class="total-score-label">総合</span>
+                        <span class="total-score-value">${data.totalScore}</span>
+                        <span class="total-score-unit">点</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="radar-chart"></canvas>
+                    </div>
                 </div>
-                <div class="rank-container">
-                    <p class="rank-value">${data.rank || 'N/A'}</p>
-                </div>
-            </div>
-            <div class="result-footer">
-                <div class="detail-grid">
-                    <p>Perfect: <span>${data.details?.Perfect || 0}</span></p>
-                    <p>Great: <span>${data.details?.Great || 0}</span></p>
-                    <p>Good: <span>${data.details?.Good || 0}</span></p>
-                    <p>Miss: <span>${data.details?.Miss || 0}</span></p>
+                <div class="details-panel">
+                    <h3>詳細データ</h3>
+                    <div class="detail-item">
+                        <label>圧迫の深さ</label>
+                        <span>${data.details.depth !== null ? data.details.depth + ' cm' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>圧迫の速さ</label>
+                        <span>${data.details.bpm !== null ? data.details.bpm + ' BPM' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>リリース</label>
+                        <span>${data.details.releasePct !== null ? data.details.releasePct + ' %' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>圧迫位置</label>
+                        <span>${data.details.positionPct !== null ? data.details.positionPct + ' %' : 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>中断回数</label>
+                        <span>${data.details.interruptionCount !== null ? data.details.interruptionCount + ' 回' : 'N/A'}</span>
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    // エラーメッセージを表示する関数
+    function renderRadarChart(radarData) {
+        const ctx = document.getElementById('radar-chart').getContext('2d');
+        const labels = ['圧迫', 'リリース', '位置', '速さ', '中断'];
+        const data = [
+            radarData.compression,
+            radarData.release,
+            radarData.position,
+            radarData.speed,
+            radarData.interruption
+        ];
+
+        new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '評価スコア',
+                    data: data,
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
+                    borderColor: 'rgba(0, 123, 255, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(0, 123, 255, 1)'
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    r: {
+                        angleLines: { color: '#ddd' },
+                        grid: { color: '#ddd' },
+                        pointLabels: { font: { size: 14 }, color: '#333' },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                        ticks: { display: false }
+                    }
+                },
+                maintainAspectRatio: false
+            }
+        });
+    }
+
     function showError(message) {
         resultDisplay.innerHTML = `<p class="error-message">${message}</p>`;
-        downloadBtn.style.display = 'none'; // エラー時はダウンロードボタンを非表示
+        downloadBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
     }
 });
