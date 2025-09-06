@@ -2,12 +2,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const resultDisplay = document.getElementById("result-display");
     const downloadBtn = document.getElementById("download-btn");
     const nextBtn = document.getElementById("next-btn");
-
     const homeBtn = document.getElementById("home-btn");
 
-    // Attach event listeners immediately
+    // Attach event listeners
     downloadBtn.addEventListener("click", () => {
-        html2canvas(resultDisplay, { backgroundColor: '#f0f4f8' }).then(canvas => {
+        // Use the new result-content for canvas creation
+        const elementToCapture = document.querySelector('.result-content') || resultDisplay;
+        html2canvas(elementToCapture, { backgroundColor: '#f9fafb' }).then(canvas => {
             const image = canvas.toDataURL("image/png");
             const link = document.createElement("a");
             link.href = image;
@@ -18,8 +19,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    homeBtn.addEventListener("click", () => {
-        window.location.href = "/index.html";
+    homeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        window.location.href = "index.html";
+    });
+
+    nextBtn.addEventListener("click", () => {
+        alert("「次へ」がクリックされました。");
     });
 
     try {
@@ -36,22 +42,6 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Data parsing error:", e);
         showError("データの解析に失敗しました。");
     }
-
-    downloadBtn.addEventListener("click", () => {
-        html2canvas(resultDisplay, { backgroundColor: '#f0f4f8' }).then(canvas => {
-            const image = canvas.toDataURL("image/png");
-            const link = document.createElement("a");
-            link.href = image;
-            link.download = "cpr-result.png";
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    });
-
-    nextBtn.addEventListener("click", () => {
-        alert("「次へ」がクリックされました。");
-    });
 
     function parseCprData(params) {
         const getInt = (p) => params.has(p) ? parseInt(params.get(p), 10) : null;
@@ -77,39 +67,55 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function renderResult(data) {
+        const details = data.details;
+        const radar = data.radar_scores;
+
         resultDisplay.innerHTML = `
-            <div class="cpr-layout">
-                <div class="main-panel">
-                    <div class="score-display">
-                        <span class="total-score-label">総合</span>
-                        <span class="total-score-value">${data.totalScore}</span>
-                        <span class="total-score-unit">点</span>
-                    </div>
-                    <div class="chart-container">
-                        <canvas id="radar-chart"></canvas>
+            <div class="result-content">
+                <!-- 総合スコア -->
+                <div class="overall-score-wrapper">
+                    <div class="overall-score-container">
+                        <div class="score-value">
+                            <span class="score-number">${data.totalScore || 'N/A'}</span>
+                            <span class="score-unit">点</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="radar-chart"></canvas>
+                        </div>
+                        <span class="chart-title">総合</span>
                     </div>
                 </div>
-                <div class="details-panel">
-                    <h3>詳細データ</h3>
-                    <div class="detail-item">
-                        <label>圧迫の深さ</label>
-                        <span>${data.details.depth !== null ? data.details.depth + ' cm' : 'N/A'}</span>
+
+                <!-- 詳細スコア -->
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <h4>圧迫</h4>
+                        <p class="detail-score">${radar.compression || 'N/A'}<span>点</span></p>
+                        <ul class="detail-list">
+                            <li>最大深度: ${details.depth !== null ? details.depth.toFixed(1) + ' cm' : 'N/A'}</li>
+                            <li>圧迫位置: ${details.positionPct !== null ? details.positionPct + ' %' : 'N/A'}</li>
+                        </ul>
                     </div>
-                    <div class="detail-item">
-                        <label>圧迫の速さ</label>
-                        <span>${data.details.bpm !== null ? data.details.bpm + ' BPM' : 'N/A'}</span>
+                    <div class="detail-card">
+                        <h4>リコイル</h4>
+                        <p class="detail-score">${radar.release || 'N/A'}<span>点</span></p>
+                        <ul class="detail-list">
+                            <li>解放率: ${details.releasePct !== null ? details.releasePct + ' %' : 'N/A'}</li>
+                        </ul>
                     </div>
-                    <div class="detail-item">
-                        <label>リリース</label>
-                        <span>${data.details.releasePct !== null ? data.details.releasePct + ' %' : 'N/A'}</span>
+                    <div class="detail-card">
+                        <h4>連続性</h4>
+                        <p class="detail-score">${radar.interruption || 'N/A'}<span>点</span></p>
+                        <ul class="detail-list">
+                            <li>中断回数: ${details.interruptionCount !== null ? details.interruptionCount + ' 回' : 'N/A'}</li>
+                        </ul>
                     </div>
-                    <div class="detail-item">
-                        <label>圧迫位置</label>
-                        <span>${data.details.positionPct !== null ? data.details.positionPct + ' %' : 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>中断回数</label>
-                        <span>${data.details.interruptionCount !== null ? data.details.interruptionCount + ' 回' : 'N/A'}</span>
+                    <div class="detail-card">
+                        <h4>レート（間隔）</h4>
+                        <p class="detail-score">${radar.speed || 'N/A'}<span>点</span></p>
+                        <ul class="detail-list">
+                            <li>BPM: ${details.bpm !== null ? details.bpm : 'N/A'}</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -118,7 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderRadarChart(radarData) {
         const ctx = document.getElementById('radar-chart').getContext('2d');
-        const labels = ['圧迫', 'リリース', '位置', '速さ', '中断'];
+        const labels = ['圧迫', 'リコイル', '位置', '速さ', '連続性'];
         const data = [
             radarData.compression,
             radarData.release,
@@ -134,19 +140,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 datasets: [{
                     label: '評価スコア',
                     data: data,
-                    backgroundColor: 'rgba(0, 123, 255, 0.2)',
-                    borderColor: 'rgba(0, 123, 255, 1)',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)', // Faint red
+                    borderColor: 'rgba(239, 68, 68, 0.8)', // Solid red
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(0, 123, 255, 1)'
+                    pointBackgroundColor: 'rgba(239, 68, 68, 1)'
                 }]
             },
             options: {
                 plugins: { legend: { display: false } },
                 scales: {
                     r: {
-                        angleLines: { color: '#ddd' },
-                        grid: { color: '#ddd' },
-                        pointLabels: { font: { size: 14 }, color: '#333' },
+                        angleLines: { color: '#e5e7eb' },
+                        grid: { color: '#e5e7eb' },
+                        pointLabels: { font: { size: 14 }, color: '#4b5563' },
                         suggestedMin: 0,
                         suggestedMax: 100,
                         ticks: { display: false }
@@ -160,5 +166,6 @@ document.addEventListener("DOMContentLoaded", () => {
     function showError(message) {
         resultDisplay.innerHTML = `<p class="error-message">${message}</p>`;
         downloadBtn.style.display = 'none';
+        nextBtn.style.display = 'none';
     }
 });

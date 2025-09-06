@@ -3,26 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Game Result</title>
+    <title>CPR Result</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
   </head>
   <body>
     <div class="container">
+      <h1 class="main-title">リザルト</h1>
       <div id="result-display">
         <!-- 結果はここに動的に生成されます -->
       </div>
       <div class="button-container">
         <button id="download-btn" class="button">画像として保存</button>
-        <a
-          href="https://kinn00kinn.github.io/url2visualize.github.io/"
-          id="home-btn"
-          class="button"
-          >ホームへ戻る</a
-        >
+        <a href="index.html" id="home-btn" class="button">ホームへ戻る</a>
+        <button id="next-btn" class="button">次へ</button>
       </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="display.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+        });
+      }
+    </script>
   </body>
 </html>
